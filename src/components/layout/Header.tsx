@@ -1,4 +1,6 @@
 import React from 'react';
+import { NavLink } from 'react-router-dom';
+
 
 const Header: React.FC = () => {
   return (
@@ -10,15 +12,15 @@ const Header: React.FC = () => {
           </div>
           <h2 className="text-lg font-bold leading-tight tracking-tight">SmartBin OS</h2>
         </div>
-        
+
         <label className="hidden md:flex flex-col min-w-64 h-10 group">
           <div className="flex w-full flex-1 items-stretch rounded-lg h-full bg-gray-100 dark:bg-slate-800 border border-transparent group-focus-within:border-primary transition-all">
             <div className="text-slate-400 flex items-center justify-center pl-3">
               <span className="material-symbols-outlined text-[20px]">search</span>
             </div>
-            <input 
-              className="flex w-full min-w-0 flex-1 bg-transparent text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none px-3 h-full rounded-r-lg" 
-              placeholder="Search Bin ID, Zone, or Street..." 
+            <input
+              className="flex w-full min-w-0 flex-1 bg-transparent text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none px-3 h-full rounded-r-lg"
+              placeholder="Search Bin ID, Zone, or Street..."
             />
           </div>
         </label>
@@ -26,28 +28,32 @@ const Header: React.FC = () => {
 
       <div className="flex items-center gap-6">
         <nav className="hidden lg:flex items-center gap-6">
-          {['Dashboard', 'Fleet Map', 'Analytics', 'Routes'].map((item, i) => (
-             <a 
-               key={item} 
-               href="#" 
-               className={`text-sm font-medium transition-colors ${i === 1 ? 'text-primary' : 'text-slate-500 dark:text-slate-400 hover:text-primary'}`}
-             >
-               {item}
-             </a>
+          {[
+            { label: 'Dashboard', path: '/' },
+            { label: 'Fleet Map', path: '/map' },
+            { label: 'Analytics', path: '/analytics' }
+          ].map((item) => (
+            <NavLink
+              key={item.label}
+              to={item.path}
+              className={({ isActive }) => `text-sm font-medium transition-colors ${isActive ? 'text-primary' : 'text-slate-500 dark:text-slate-400 hover:text-primary'}`}
+            >
+              {item.label}
+            </NavLink>
           ))}
         </nav>
-        
+
         <div className="flex items-center gap-4 border-l border-gray-200 dark:border-slate-700 pl-6">
           <button className="relative text-slate-500 dark:text-slate-400 hover:text-primary transition-colors">
             <span className="material-symbols-outlined">notifications</span>
             <span className="absolute top-0 right-0 size-2 bg-red-500 rounded-full border-2 border-surface-light dark:border-surface-dark"></span>
           </button>
-          
+
           <div className="size-9 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden border border-slate-300 dark:border-slate-600 cursor-pointer hover:border-primary transition-colors">
-            <img 
-              alt="User Profile" 
-              className="w-full h-full object-cover" 
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuDsi2j08fY7aB4Qs0ByOlcCo54VjruwArWMeI_9l9mjZdNKtxHXcUHBpr_n957QPHqz7RD2QGSB0WHRLc6WdOscbDEVVcxEHU2XYRy5dx6Jw3cjTsjD3Nacrg_86KWxqNf10a0ek42uKeFsrtfFRtTaSjJ_dhOuVIzq6zeTYlcyynSSbFqCdkBl5HiH3NbAoMWHSPlVrUPiFhwbGzMQ34NDWEtxzlvQR58rPDRF9uwM6jb2q818HmvopPYq-O7E-k6I9YD9AdnSXXQ" 
+            <img
+              alt="User Profile"
+              className="w-full h-full object-cover"
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuDsi2j08fY7aB4Qs0ByOlcCo54VjruwArWMeI_9l9mjZdNKtxHXcUHBpr_n957QPHqz7RD2QGSB0WHRLc6WdOscbDEVVcxEHU2XYRy5dx6Jw3cjTsjD3Nacrg_86KWxqNf10a0ek42uKeFsrtfFRtTaSjJ_dhOuVIzq6zeTYlcyynSSbFqCdkBl5HiH3NbAoMWHSPlVrUPiFhwbGzMQ34NDWEtxzlvQR58rPDRF9uwM6jb2q818HmvopPYq-O7E-k6I9YD9AdnSXXQ"
             />
           </div>
         </div>

@@ -9,9 +9,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "recharts": "^3.6.0",
+    "@dataconnect/generated": "file:src/dataconnect-generated",
     "react": "^19.2.3",
-    "react-dom": "^19.2.3"
+    "react-dom": "^19.2.3",
+    "react-router-dom": "^7.12.0",
+    "recharts": "^3.6.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

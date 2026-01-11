@@ -1,57 +1,118 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SmartBin OS</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
-      rel="stylesheet"
-    />
-    <script>
-      tailwind.config = {
-        darkMode: "class",
-        theme: {
-          extend: {
-            colors: {
-              primary: "#137fec",
-              "surface-dark": "#1e293b",
-              "background-dark": "#101922",
-              "surface-light": "#ffffff",
-              "background-light": "#f6f7f8",
-            },
-            fontFamily: {
-              sans: ["Inter", "sans-serif"],
-            },
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SmartBin OS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+    rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            primary: "#137fec",
+            "surface-dark": "#1e293b",
+            "background-dark": "#101922",
+            "surface-light": "#ffffff",
+            "background-light": "#f6f7f8",
+          },
+          fontFamily: {
+            sans: ["Inter", "sans-serif"],
           },
         },
-      };
-    </script>
-    <style>
-      .material-symbols-outlined {
-        font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      },
+    };
+  </script>
+  <style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+
+    /* Custom scrollbar for dark mode */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+
+    /* Glass Widget Styles */
+    .glass-widget {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15);
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .glass-widget:hover {
+      transform: translateY(-4px) scale(1.01);
+      box-shadow: 0 15px 40px 0 rgba(0, 0, 0, 0.25), 0 0 20px rgba(99, 102, 241, 0.15);
+      border-color: rgba(255, 255, 255, 0.35);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.08) 100%);
+    }
+
+    .glass-widget-light {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.6) 100%);
+    }
+
+    .glass-widget-light:hover {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.75) 100%);
+    }
+
+    /* Gradient border glow effect */
+    .glass-glow {
+      position: relative;
+    }
+
+    .glass-glow::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: inherit;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(168, 85, 247, 0.3), rgba(236, 72, 153, 0.3));
+      opacity: 0;
+      z-index: -1;
+      transition: opacity 0.4s ease;
+    }
+
+    .glass-glow:hover::before {
+      opacity: 1;
+    }
+
+    /* Shimmer animation */
+    @keyframes shimmer {
+      0% {
+        background-position: -200% 0;
       }
-      /* Custom scrollbar for dark mode */
-      ::-webkit-scrollbar {
-        width: 6px;
-        height: 6px;
+
+      100% {
+        background-position: 200% 0;
       }
-      ::-webkit-scrollbar-track {
-        background: #0f172a;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #334155;
-        border-radius: 3px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #475569;
-      }
-    </style>
+    }
+
+    .glass-shimmer:hover {
+      background-size: 200% 100%;
+      animation: shimmer 2s infinite linear;
+    }
+  </style>
   <script type="importmap">
 {
   "imports": {
@@ -62,10 +123,12 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
+  <link rel="stylesheet" href="/index.css">
 </head>
-  <body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-sans min-h-screen">
-    <div id="root"></div>
-  <script type="module" src="/index.tsx"></script>
+
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-sans min-h-screen">
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
 </body>
+
 </html>
