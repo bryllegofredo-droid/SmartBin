@@ -1,123 +1,117 @@
 import React, { useState, useRef, useCallback } from 'react';
+import { BinWithStatus } from '@/types';
 
-// Initial bin data
-const initialBins = [
-  {
-    id: 'BIN_001',
-    name: 'Entrance Gate',
-    fillLevel: 75,
-    weight: 8.5,
-    status: 'warning',
-    position: { top: '35%', left: '45%' }
-  },
-  {
-    id: 'BIN_002',
-    name: 'Cafeteria',
-    fillLevel: 45,
-    weight: 5.2,
-    status: 'normal',
-    position: { top: '55%', left: '30%' }
-  },
-  {
-    id: 'BIN_003',
-    name: 'Library',
-    fillLevel: 90,
-    weight: 12.1,
-    status: 'critical',
-    position: { top: '65%', left: '55%' }
-  }
-];
+interface MapWidgetProps {
+  bins: BinWithStatus[];
+}
 
-type Bin = typeof initialBins[0];
-
-const MapWidget: React.FC = () => {
+const MapWidget: React.FC<MapWidgetProps> = ({ bins }) => {
   const [zoom, setZoom] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
-  const [bins, setBins] = useState<Bin[]>(initialBins);
   const [editMode, setEditMode] = useState(false);
+  const [binsState, setBinsState] = useState<BinWithStatus[]>(bins);
+
+  // Sync props to state when props change
+  React.useEffect(() => {
+    setBinsState(bins);
+  }, [bins]);
+
+  // Dragging state for bins
   const [draggingBinId, setDraggingBinId] = useState<string | null>(null);
 
+  const mapContainerRef = useRef<HTMLDivElement>(null);
   const dragStart = useRef({ x: 0, y: 0 });
   const positionStart = useRef({ x: 0, y: 0 });
-  const mapContainerRef = useRef<HTMLDivElement>(null);
 
   const minZoom = 0.5;
   const maxZoom = 3;
   const zoomStep = 0.25;
 
-  const handleZoomIn = () => {
-    setZoom(prev => Math.min(prev + zoomStep, maxZoom));
-  };
-
-  const handleZoomOut = () => {
-    setZoom(prev => Math.max(prev - zoomStep, minZoom));
-  };
-
+  const handleZoomIn = () => setZoom(prev => Math.min(prev + zoomStep, maxZoom));
+  const handleZoomOut = () => setZoom(prev => Math.max(prev - zoomStep, minZoom));
   const handleResetView = () => {
     setZoom(1);
     setPosition({ x: 0, y: 0 });
   };
 
-  // Map drag handlers
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    // Ignore if clicking on controls or bin markers in edit mode
+  // --- Map Pan Logic ---
+  const handleMapMouseDown = useCallback((e: React.MouseEvent) => {
+    if (draggingBinId) return;
     if ((e.target as HTMLElement).closest('button')) return;
-    if ((e.target as HTMLElement).closest('[data-bin-marker]') && editMode) return;
+    if (editMode && (e.target as HTMLElement).closest('[data-bin-marker]')) return;
 
     setIsDragging(true);
     dragStart.current = { x: e.clientX, y: e.clientY };
     positionStart.current = { x: position.x, y: position.y };
-  }, [position, editMode]);
+  }, [position, editMode, draggingBinId]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    // Handle bin dragging
+    // 1. Handle Bin Dragging
     if (draggingBinId && mapContainerRef.current) {
       const rect = mapContainerRef.current.getBoundingClientRect();
-      const x = ((e.clientX - rect.left) / rect.width) * 100;
-      const y = ((e.clientY - rect.top) / rect.height) * 100;
+      const relX = (e.clientX - rect.left - position.x) / zoom;
+      const relY = (e.clientY - rect.top - position.y) / zoom;
 
-      setBins(prev => prev.map(bin =>
-        bin.id === draggingBinId
-          ? { ...bin, position: { top: `${Math.max(0, Math.min(100, y))}%`, left: `${Math.max(0, Math.min(100, x))}%` } }
-          : bin
+      const percentX = Math.max(0, Math.min(100, (relX / rect.width) * 100));
+      const percentY = Math.max(0, Math.min(100, (relY / rect.height) * 100));
+
+      setBinsState(prev => prev.map(b =>
+        b.id === draggingBinId
+          ? { ...b, position: { x: percentX, y: percentY } }
+          : b
       ));
       return;
     }
 
-    // Handle map dragging
+    // 2. Handle Map Panning
     if (!isDragging) return;
-
     const deltaX = e.clientX - dragStart.current.x;
     const deltaY = e.clientY - dragStart.current.y;
-
     setPosition({
       x: positionStart.current.x + deltaX,
       y: positionStart.current.y + deltaY
     });
-  }, [isDragging, draggingBinId]);
+  }, [isDragging, draggingBinId, position, zoom]);
 
-  const handleMouseUp = useCallback(() => {
+  const handleMouseUp = useCallback(async () => {
+    if (draggingBinId) {
+      const bin = binsState.find(b => b.id === draggingBinId);
+      if (bin && bin.position) {
+        try {
+          const { binService } = await import('@/services/binService');
+          await binService.updateBinLocation(bin.id, bin.position);
+          console.log('Bin location updated');
+        } catch (err) {
+          console.error('Failed to save bin location', err);
+        }
+      }
+      setDraggingBinId(null);
+    }
     setIsDragging(false);
-    setDraggingBinId(null);
-  }, []);
+  }, [draggingBinId, binsState]);
 
   const handleMouseLeave = useCallback(() => {
     setIsDragging(false);
     setDraggingBinId(null);
   }, []);
 
-  // Bin marker drag handler
-  const handleBinMouseDown = useCallback((e: React.MouseEvent, binId: string) => {
+  const handleMarkerMouseDown = (e: React.MouseEvent, binId: string) => {
     if (!editMode) return;
-    e.stopPropagation();
+    e.preventDefault();
     setDraggingBinId(binId);
-  }, [editMode]);
+  };
 
   const getMarkerColor = (status: string) => {
-    if (status === 'critical') return 'bg-red-500';
-    if (status === 'warning') return 'bg-yellow-500';
+    if (status?.toLowerCase() === 'critical') return 'bg-red-500';
+    if (status?.toLowerCase() === 'warning') return 'bg-orange-500';
     return 'bg-green-500';
+  };
+
+  const formatLastUpdated = (timestamp: number) => {
+    if (!timestamp) return 'Never';
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   return (
@@ -125,19 +119,15 @@ const MapWidget: React.FC = () => {
       {/* Header */}
       <div className="p-4 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
         <h2 className="text-lg font-bold text-slate-900 dark:text-white">Campus Map</h2>
-        <div className="flex gap-4 text-xs">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-            <span className="text-slate-600 dark:text-slate-400">Normal (1)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-            <span className="text-slate-600 dark:text-slate-400">Warning (1)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-            <span className="text-slate-600 dark:text-slate-400">Critical (1)</span>
-          </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-slate-500">{editMode ? 'Drag pins to move' : ''}</span>
+          <button
+            onClick={() => setEditMode(!editMode)}
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${editMode ? 'bg-primary text-white shadow-lg shadow-blue-500/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}
+          >
+            <span className="material-symbols-outlined text-[16px]">{editMode ? 'check' : 'edit_location'}</span>
+            {editMode ? 'Done' : 'Edit Pins'}
+          </button>
         </div>
       </div>
 
@@ -145,68 +135,76 @@ const MapWidget: React.FC = () => {
       <div
         ref={mapContainerRef}
         className={`flex-1 relative bg-white min-h-[400px] overflow-hidden ${draggingBinId ? 'cursor-grabbing' : isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
-        onMouseDown={handleMouseDown}
+        onMouseDown={handleMapMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
       >
-        {/* Zoomable Container */}
         <div
-          className={`absolute inset-0 origin-center ${isDragging ? '' : 'transition-transform duration-300 ease-out'}`}
+          className={`absolute inset-0 origin-center ${isDragging || draggingBinId ? '' : 'transition-transform duration-300 ease-out'}`}
           style={{ transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})` }}
         >
-          {/* Campus Map Image */}
           <img
             src="/campus-map.png"
             alt="Campus Map"
-            className="absolute inset-0 w-full h-full object-contain bg-white"
+            className="absolute inset-0 w-full h-full object-contain bg-white select-none pointer-events-none"
+            draggable={false}
           />
 
-          {/* Bin Markers Overlay */}
-          <div className="absolute inset-0">
-            <div className="relative w-full h-full">
-              {/* Bin Markers */}
-              {bins.map((bin) => (
-                <div
-                  key={bin.id}
-                  data-bin-marker
-                  className={`absolute group ${editMode ? 'cursor-move' : 'cursor-pointer'} ${draggingBinId === bin.id ? 'z-50' : ''}`}
-                  style={{
-                    ...bin.position,
-                    transform: `translate(-50%, -50%) scale(${1 / zoom})`,
-                    transformOrigin: 'center center'
-                  }}
-                  onMouseDown={(e) => handleBinMouseDown(e, bin.id)}
-                >
-                  {/* Marker */}
-                  <div className={`w-6 h-6 ${getMarkerColor(bin.status)} rounded-full border-2 ${editMode ? 'border-blue-400 ring-2 ring-blue-400/50' : 'border-white'} shadow-lg ${draggingBinId === bin.id ? 'scale-125' : ''} ${editMode ? '' : 'pulse-ring'} transition-transform`}></div>
+          {/* Bin Markers */}
+          {binsState.map((bin) => {
+            const pos = bin.position || { x: 50, y: 50 };
 
-                  {/* Tooltip on hover */}
-                  <div className="absolute left-8 top-0 bg-slate-800 text-white px-3 py-2 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl z-10">
-                    <div className="font-bold">{bin.name}</div>
-                    <div className="text-slate-300">{bin.id}</div>
-                    <div className="mt-1 flex items-center gap-2">
-                      <span>Fill: {bin.fillLevel}%</span>
-                      <span>•</span>
-                      <span>Weight: {bin.weight}kg</span>
+            return (
+              <div
+                key={bin.id}
+                data-bin-marker
+                onMouseDown={(e) => handleMarkerMouseDown(e, bin.id)}
+                className={`absolute transform -translate-x-1/2 -translate-y-1/2 ${editMode ? 'cursor-move hover:scale-110' : 'cursor-pointer'} transition-transform z-10`}
+                style={{
+                  left: `${pos.x}%`,
+                  top: `${pos.y}%`,
+                  transform: `translate(-50%, -50%) scale(${1 / zoom})`
+                }}
+              >
+                <div className={`relative group`}>
+                  {bin.status?.toLowerCase() === 'critical' && (
+                    <div className="absolute inset-0 rounded-full bg-red-500 animate-ping opacity-75"></div>
+                  )}
+
+                  <div className={`w-6 h-6 rounded-full border-2 border-white shadow-md flex items-center justify-center ${getMarkerColor(bin.status)}`}>
+                    <span className="material-symbols-outlined text-white text-[14px]">delete</span>
+                  </div>
+
+                  {/* Enriched Tooltip */}
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-slate-800 text-white rounded-lg shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none z-50 transition-opacity p-2 text-xs">
+                    <div className="font-bold border-b border-slate-600 pb-1 mb-1 flex justify-between">
+                      <span>{bin.assignedID}</span>
+                      <span className="uppercase text-[10px] bg-slate-700 px-1 rounded">{bin.status}</span>
                     </div>
-                    {editMode && <div className="mt-1 text-blue-300 text-[10px]">Drag to move</div>}
+                    <div className="space-y-1">
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Fill Level:</span>
+                        <span className={`font-mono ${bin.fillLevel >= 90 ? 'text-red-400' : 'text-blue-300'}`}>{bin.fillLevel}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Weight:</span>
+                        <span className="font-mono text-slate-200">{bin.weight} kg</span>
+                      </div>
+                      <div className="flex justify-between border-t border-slate-700 pt-1 mt-1">
+                        <span className="text-slate-500 text-[10px]">Updated:</span>
+                        <span className="text-slate-400 text-[10px]">{formatLastUpdated(bin.lastUpdated)}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
+            );
+          })}
         </div>
 
         {/* Map Controls */}
         <div className="absolute top-4 right-4 flex flex-col gap-2 z-20">
-          <button
-            onClick={() => setEditMode(!editMode)}
-            className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors shadow-lg ${editMode ? 'bg-blue-500 hover:bg-blue-600' : 'bg-surface-light dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700'}`}
-            title={editMode ? 'Exit edit mode' : 'Edit bin locations'}
-          >
-            <span className={`material-symbols-outlined ${editMode ? 'text-white' : 'text-slate-700 dark:text-slate-300'}`}>edit_location_alt</span>
-          </button>
           <button
             onClick={handleResetView}
             className="w-10 h-10 bg-surface-light dark:bg-slate-800 rounded-lg flex items-center justify-center hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors shadow-lg"
@@ -231,56 +229,52 @@ const MapWidget: React.FC = () => {
             <span className="material-symbols-outlined text-slate-700 dark:text-slate-300">remove</span>
           </button>
         </div>
-
-        {/* Zoom Level Indicator */}
-        <div className="absolute bottom-4 right-4 bg-white/90 dark:bg-slate-800/90 px-3 py-1 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 shadow-lg z-20">
-          {Math.round(zoom * 100)}%
-        </div>
       </div>
 
       {/* Bin List Below Map */}
       <div className="p-4 border-t border-gray-200 dark:border-slate-700 max-h-48 overflow-y-auto">
         <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3">Bin Status</h3>
         <div className="space-y-2">
-          {bins.map((bin) => (
-            <div
-              key={bin.id}
-              className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className={`w-3 h-3 ${getMarkerColor(bin.status)} rounded-full`}></div>
-                <div>
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white">{bin.name}</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">{bin.id}</div>
+          {bins.length === 0 ? (
+            <p className="text-sm text-slate-500">No bins found.</p>
+          ) : (
+            bins.map((bin) => (
+              <div
+                key={bin.id}
+                className="grid grid-cols-4 items-center gap-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <div className="flex items-center gap-3 overflow-hidden">
+                  <div className={`w-3 h-3 flex-shrink-0 ${getMarkerColor(bin.status)} rounded-full`}></div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-slate-900 dark:text-white truncate">{bin.assignedID}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 truncate">{bin.macID}</div>
+                  </div>
+                </div>
+
+                <div className="text-center">
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    <span className="block text-[10px]">Fill</span>
+                    <span className={`font-bold ${bin.fillLevel > 80 ? 'text-red-500' : 'text-slate-700 dark:text-slate-300'}`}>{bin.fillLevel}%</span>
+                  </div>
+                </div>
+
+                <div className="text-center">
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    <span className="block text-[10px]">Weight</span>
+                    <span className="font-bold text-slate-700 dark:text-slate-300">{bin.weight}kg</span>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <span className="inline-block text-xs font-medium px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 capitalize truncate max-w-full">
+                    {bin.status}
+                  </span>
                 </div>
               </div>
-              <div className="text-right">
-                <div className="text-sm font-bold text-slate-900 dark:text-white">{bin.fillLevel}%</div>
-                <div className="text-xs text-slate-500 dark:text-slate-400">{bin.weight} kg</div>
-              </div>
-            </div>
-          ))}
+            )))}
         </div>
       </div>
-
-      <style>{`
-        @keyframes pulse-ring {
-          0% {
-            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
-          }
-          70% {
-            box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
-          }
-          100% {
-            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
-          }
-        }
-        .pulse-ring {
-          animation: pulse-ring 2s infinite;
-        }
-      `}</style>
     </div>
   );
 };
-
 export default MapWidget;

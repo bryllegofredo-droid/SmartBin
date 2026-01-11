@@ -13,17 +13,7 @@ const Header: React.FC = () => {
           <h2 className="text-lg font-bold leading-tight tracking-tight">SmartBin OS</h2>
         </div>
 
-        <label className="hidden md:flex flex-col min-w-64 h-10 group">
-          <div className="flex w-full flex-1 items-stretch rounded-lg h-full bg-gray-100 dark:bg-slate-800 border border-transparent group-focus-within:border-primary transition-all">
-            <div className="text-slate-400 flex items-center justify-center pl-3">
-              <span className="material-symbols-outlined text-[20px]">search</span>
-            </div>
-            <input
-              className="flex w-full min-w-0 flex-1 bg-transparent text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none px-3 h-full rounded-r-lg"
-              placeholder="Search Bin ID, Zone, or Street..."
-            />
-          </div>
-        </label>
+
       </div>
 
       <div className="flex items-center gap-6">
@@ -31,6 +21,7 @@ const Header: React.FC = () => {
           {[
             { label: 'Dashboard', path: '/' },
             { label: 'Fleet Map', path: '/map' },
+            { label: 'Bin List', path: '/bins' },
             { label: 'Analytics', path: '/analytics' }
           ].map((item) => (
             <NavLink

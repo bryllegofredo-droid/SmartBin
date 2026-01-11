@@ -1,4 +1,4 @@
-import { StatMetric, PickupLog, ChartData } from './types';
+import { StatMetric, PickupLog, ChartData } from '@/types';
 
 export const STATS: StatMetric[] = [
   {
