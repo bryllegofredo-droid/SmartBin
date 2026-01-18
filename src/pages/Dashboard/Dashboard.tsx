@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import StatCard from '@/components/common/StatCard';
 import MapWidget from './components/MapWidget';
-import AnalyticsPanel from './components/AnalyticsPanel';
 import { binService } from '@/services/binService';
 import { Bin, DashboardStats, BinWithStatus } from '@/types';
 
@@ -107,9 +106,8 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Main Dashboard Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-[600px]">
+      <div className="flex-1 min-h-[600px]">
         <MapWidget bins={bins} />
-        <AnalyticsPanel />
       </div>
 
     </>

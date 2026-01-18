@@ -20,9 +20,7 @@ const Header: React.FC = () => {
         <nav className="hidden lg:flex items-center gap-6">
           {[
             { label: 'Dashboard', path: '/' },
-            { label: 'Fleet Map', path: '/map' },
-            { label: 'Bin List', path: '/bins' },
-            { label: 'Analytics', path: '/analytics' }
+            { label: 'Bin List', path: '/bins' }
           ].map((item) => (
             <NavLink
               key={item.label}

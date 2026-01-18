@@ -9,20 +9,64 @@ const BinList: React.FC = () => {
     const [bins, setBins] = useState<Bin[]>([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchBins = async () => {
-            try {
-                const binsList = await binService.fetchBins();
-                setBins(binsList);
-            } catch (error) {
-                console.error("Error fetching bins: ", error);
-            } finally {
-                setLoading(false);
-            }
-        };
+    // Modal state
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [macAddress, setMacAddress] = useState('');
+    const [nextId, setNextId] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState('');
 
+    const fetchBins = async () => {
+        try {
+            setLoading(true);
+            const binsList = await binService.fetchBins();
+            setBins(binsList);
+        } catch (error) {
+            console.error("Error fetching bins: ", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
         fetchBins();
     }, []);
+
+    const openAddModal = async () => {
+        setShowAddModal(true);
+        setMacAddress('');
+        setError('');
+        // Fetch next available ID
+        const id = await binService.getNextAvailableId();
+        setNextId(id);
+    };
+
+    const closeModal = () => {
+        setShowAddModal(false);
+        setMacAddress('');
+        setError('');
+    };
+
+    const handleAddBin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!macAddress.trim()) {
+            setError('MAC ID is required');
+            return;
+        }
+
+        setIsSubmitting(true);
+        setError('');
+
+        try {
+            await binService.addBin(macAddress.trim(), nextId);
+            closeModal();
+            fetchBins(); // Refresh the list
+        } catch (err: any) {
+            setError(err.message || 'Failed to add bin');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     const formatDate = (date: Timestamp | Date | string) => {
         if (!date) return 'N/A';
@@ -52,7 +96,10 @@ const BinList: React.FC = () => {
         <div className="flex flex-col gap-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Bin Registry</h1>
-                <button className="px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20">
+                <button
+                    onClick={openAddModal}
+                    className="px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20"
+                >
                     Add New Bin
                 </button>
             </div>
@@ -116,6 +163,81 @@ const BinList: React.FC = () => {
                     </table>
                 </div>
             </div>
+
+            {/* Add New Bin Modal */}
+            {showAddModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+                        <div className="p-6 border-b border-gray-200 dark:border-slate-800">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Add New Bin</h2>
+                                <button
+                                    onClick={closeModal}
+                                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                                >
+                                    <span className="material-symbols-outlined">close</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <form onSubmit={handleAddBin} className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                    Assigned ID
+                                </label>
+                                <input
+                                    type="text"
+                                    value={nextId}
+                                    disabled
+                                    className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-slate-500 dark:text-slate-400 cursor-not-allowed"
+                                />
+                                <p className="mt-1 text-xs text-slate-500">Auto-generated based on existing bins</p>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                    MAC ID <span className="text-red-500">*</span>
+                                </label>
+                                <select
+                                    value={macAddress}
+                                    onChange={(e) => setMacAddress(e.target.value)}
+                                    className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                                >
+                                    <option value="">Select a MAC ID</option>
+                                    {bins.map((bin) => (
+                                        <option key={bin.id} value={bin.macID}>
+                                            {bin.macID} (ID: {bin.assignedID})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {error && (
+                                <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                                    <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                                </div>
+                            )}
+
+                            <div className="flex gap-3 pt-4">
+                                <button
+                                    type="button"
+                                    onClick={closeModal}
+                                    className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isSubmitting}
+                                    className="flex-1 px-4 py-3 bg-primary text-white font-semibold rounded-lg hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isSubmitting ? 'Adding...' : 'Add Bin'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

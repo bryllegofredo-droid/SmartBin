@@ -115,7 +115,7 @@ const MapWidget: React.FC<MapWidgetProps> = ({ bins }) => {
   };
 
   return (
-    <div className="lg:col-span-2 glass-widget glass-glow rounded-2xl overflow-hidden flex flex-col">
+    <div className="glass-widget glass-glow rounded-2xl overflow-hidden flex flex-col h-full">
       {/* Header */}
       <div className="p-4 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
         <h2 className="text-lg font-bold text-slate-900 dark:text-white">Campus Map</h2>
@@ -134,7 +134,7 @@ const MapWidget: React.FC<MapWidgetProps> = ({ bins }) => {
       {/* Map Container */}
       <div
         ref={mapContainerRef}
-        className={`flex-1 relative bg-white min-h-[400px] overflow-hidden ${draggingBinId ? 'cursor-grabbing' : isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+        className={`flex-1 relative bg-white min-h-[600px] overflow-hidden ${draggingBinId ? 'cursor-grabbing' : isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
         onMouseDown={handleMapMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
